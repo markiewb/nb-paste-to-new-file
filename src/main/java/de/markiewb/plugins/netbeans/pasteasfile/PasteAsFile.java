@@ -44,7 +44,9 @@ import org.openide.util.datatransfer.ExClipboard;
 @ActionID(category = "Editing", id = "sample.PasteAsFile")
 @ActionRegistration(displayName = "#CTL_PasteAsFile")
 @ActionReferences({
-    @ActionReference(path = "Menu/Edit", position = 1400),})
+    @ActionReference(path = "Menu/Edit", position = 1325),
+    @ActionReference(path = "Shortcuts", name = "DOS-V")
+})
 @Messages("CTL_PasteAsFile=Paste as new file")
 public final class PasteAsFile implements ActionListener {
 
@@ -87,21 +89,22 @@ public final class PasteAsFile implements ActionListener {
                             String packageName = toString.substring(0, lastIndexOf);
                             String className = next.getSimpleName().toString();
 
-                            final String fileNameWithExt = className + ".java";
+                            final String fileNameWithExt = String.format("%s.java", className);
                             try {
+                                //TODO create in source root to prevent compile errors in new file
                                 FileObject packageFolder = FileUtil.createFolder(context.getPrimaryFile(), packageName.replace('.', '/'));
                                 FileObject file = FileUtil.createData(packageFolder, fileNameWithExt);
                                 writeToFile(file, clipboardContent);
                                 openFileInEditor(file);
                             } catch (IOException iOException) {
-                                JOptionPane.showMessageDialog(null, "Cannot create " + fileNameWithExt + "\n" + iOException.getMessage());
+                                JOptionPane.showMessageDialog(null, String.format("Cannot create %s\n%s", fileNameWithExt, iOException.getMessage()));
                             }
                         }
                     }
 
                 }, true);
             } else {
-                //fallback to create arbitrary file
+                //fallback to create arbitrary file in current folder
                 String fileName = JOptionPane.showInputDialog("Name of the new file:", "FromClipboard.txt");
                 if (null != fileName) {
                     FileObject file = FileUtil.createData(context.getPrimaryFile(), fileName);
