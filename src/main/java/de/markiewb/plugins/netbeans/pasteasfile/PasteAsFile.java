@@ -66,58 +66,9 @@ public final class PasteAsFile implements ActionListener {
 
             if (isJavaCodeInClipboard) {
 
-                js.runUserActionTask(new CancellableTask<CompilationController>() {
-
-                    @Override
-                    public void cancel() {
-                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                    }
-
-                    @Override
-                    public void run(CompilationController p) throws Exception {
-                        p.toPhase(JavaSource.Phase.ELEMENTS_RESOLVED);
-                        List<? extends TypeElement> topLevelElements = p.getTopLevelElements();
-                        if (!topLevelElements.isEmpty()) {
-                            TypeElement next = topLevelElements.iterator().next();
-                            Name qualifiedName = next.getQualifiedName();
-                            String toString = qualifiedName.toString();
-                            int lastIndexOf = toString.lastIndexOf(".");
-
-                            //support packages and default package
-                            String packageName = (lastIndexOf > 0) ? toString.substring(0, lastIndexOf) : "";
-                            String className = next.getSimpleName().toString();
-
-                            final String fileNameWithExt = String.format("%s.java", className);
-                            try {
-                                //TODO create in source root to prevent compile errors in new file
-                                //TODO or transform the package in the code
-                                FileObject folder;
-                                if (null != packageName && !packageName.isEmpty()) {
-                                    //is in different package, so create the folders to match the packagename
-                                    folder = FileUtil.createFolder(context.getPrimaryFile(), packageName.replace('.', '/'));
-                                } else {
-                                    //default package, so create in current folder
-                                    folder = context.getPrimaryFile();
-                                }
-                                FileObject file = FileUtil.createData(folder, fileNameWithExt);
-                                writeToFile(file, clipboardContent);
-                                openFileInEditor(file);
-                            } catch (IOException iOException) {
-                                JOptionPane.showMessageDialog(null, String.format("Cannot create %s\n%s", fileNameWithExt, iOException.getMessage()));
-                            }
-                        }
-                    }
-
-                }, true);
+                handeJavaCode(js, clipboardContent);
             } else {
-                //fallback to create arbitrary file in current folder
-                String fileName = JOptionPane.showInputDialog("Name of the new file:", "FromClipboard.txt");
-                if (null != fileName) {
-                    FileObject file = FileUtil.createData(context.getPrimaryFile(), fileName);
-                    writeToFile(file, clipboardContent);
-                    //open newly created file in editor
-                    openFileInEditor(file);
-                }
+                handleArbitraryText(clipboardContent);
 
             }
         } catch (IOException ex) {
@@ -145,6 +96,63 @@ public final class PasteAsFile implements ActionListener {
         }
         JavaSource js = JavaSource.forFileObject(fob);
         return js;
+    }
+
+    private void handeJavaCode(JavaSource js, final String clipboardContent) throws IOException {
+        js.runUserActionTask(new CancellableTask<CompilationController>() {
+
+            @Override
+            public void cancel() {
+                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public void run(CompilationController p) throws Exception {
+                p.toPhase(JavaSource.Phase.ELEMENTS_RESOLVED);
+                List<? extends TypeElement> topLevelElements = p.getTopLevelElements();
+                if (!topLevelElements.isEmpty()) {
+                    TypeElement next = topLevelElements.iterator().next();
+                    Name qualifiedName = next.getQualifiedName();
+                    String toString = qualifiedName.toString();
+                    int lastIndexOf = toString.lastIndexOf(".");
+
+                    //support packages and default package
+                    String packageName = (lastIndexOf > 0) ? toString.substring(0, lastIndexOf) : "";
+                    String className = next.getSimpleName().toString();
+
+                    final String fileNameWithExt = String.format("%s.java", className);
+                    try {
+                        //TODO create in source root to prevent compile errors in new file
+                        //TODO or transform the package in the code
+                        FileObject folder;
+                        if (null != packageName && !packageName.isEmpty()) {
+                            //is in different package, so create the folders to match the packagename
+                            folder = FileUtil.createFolder(context.getPrimaryFile(), packageName.replace('.', '/'));
+                        } else {
+                            //default package, so create in current folder
+                            folder = context.getPrimaryFile();
+                        }
+                        FileObject file = FileUtil.createData(folder, fileNameWithExt);
+                        writeToFile(file, clipboardContent);
+                        openFileInEditor(file);
+                    } catch (IOException iOException) {
+                        JOptionPane.showMessageDialog(null, String.format("Cannot create %s\n%s", fileNameWithExt, iOException.getMessage()));
+                    }
+                }
+            }
+
+        }, true);
+    }
+
+    private void handleArbitraryText(final String clipboardContent) throws IOException {
+        //fallback to create arbitrary file in current folder
+        String fileName = JOptionPane.showInputDialog("Name of the new file:", "FromClipboard.txt");
+        if (null != fileName) {
+            FileObject file = FileUtil.createData(context.getPrimaryFile(), fileName);
+            writeToFile(file, clipboardContent);
+            //open newly created file in editor
+            openFileInEditor(file);
+        }
     }
 
     private void openFileInEditor(FileObject file) throws DataObjectNotFoundException {
