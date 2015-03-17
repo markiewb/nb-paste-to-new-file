@@ -1,19 +1,29 @@
 package de.markiewb.plugins.netbeans.pasteasfile;
 
+import com.sun.source.tree.CompilationUnitTree;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.swing.JOptionPane;
+import org.netbeans.api.java.project.JavaProjectConstants;
 import org.netbeans.api.java.source.CancellableTask;
 import org.netbeans.api.java.source.CompilationController;
 import org.netbeans.api.java.source.JavaSource;
+import org.netbeans.api.java.source.ModificationResult;
+import org.netbeans.api.java.source.TreeMaker;
+import org.netbeans.api.java.source.WorkingCopy;
+import org.netbeans.api.project.FileOwnerQuery;
+import org.netbeans.api.project.Project;
+import org.netbeans.api.project.ProjectUtils;
+import org.netbeans.api.project.SourceGroup;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
 import org.openide.awt.ActionReferences;
@@ -33,8 +43,16 @@ import org.openide.util.datatransfer.ExClipboard;
 /**
  * Paste the text from the clipboard into a new file.
  * <p>
- * If the content is a Java source file, then the file will be created in the
- * file/path defined by the fully qualified name of the first top-level element.
+ * If the content is a Java source file, the packagename will be adapted to
+ * prevent compile errors - eclipse-alike - by the following scheme:
+ * <ul>
+ * <li>pasting at source root (like src/main/java) will create the file in the
+ * package defined by the packagename in the clipboard (=folders will be created
+ * to match sourcecode's packagename)</li>
+ * <li>pasting at non-source root (like src/main/java/com/foo) will create the
+ * file in the package defined by the selected folder (=sourcecode's packagename
+ * will be modified to match the folder structure)</li></li>
+ * </ul>
  * Else the currently selected DataFolder will be used as folder and the user
  * will be prompted for a filename in this directory.
  * </p>
@@ -63,11 +81,14 @@ public final class PasteAsFile implements ActionListener {
             //TODO java source: action is only action at src or test sourceroot to prevent compileerrors
             JavaSource js = getJavaSourceForString(clipboardContent);
             final boolean isJavaCodeInClipboard = js != null;
+            Project pr = FileOwnerQuery.getOwner(context.getPrimaryFile());
 
-            if (isJavaCodeInClipboard) {
-
-                handeJavaCode(js, clipboardContent);
+            if (isJavaCodeInClipboard && pr != null) {
+                //pasting into the project view
+                handeJavaCode(js, pr, clipboardContent);
             } else {
+                //a) pasting non java code everywhere
+                //b) pasting java code in favorites view
                 handleArbitraryText(clipboardContent);
 
             }
@@ -98,12 +119,54 @@ public final class PasteAsFile implements ActionListener {
         return js;
     }
 
-    private void handeJavaCode(JavaSource js, final String clipboardContent) throws IOException {
+    /**
+     * Taken from http://hg.netbeans.org/main/rev/045508faade4
+     *
+     * @param file
+     */
+    private void fixPackagename(FileObject file, final String newPackage) {
+        try {
+            JavaSource js = JavaSource.forFileObject(file);
+            ModificationResult runModificationTask = js.runModificationTask(new CancellableTask<WorkingCopy>() {
+
+                @Override
+                public void cancel() {
+                }
+
+                @Override
+                public void run(WorkingCopy p) throws Exception {
+                    p.toPhase(JavaSource.Phase.RESOLVED);
+                    TreeMaker treeMaker = p.getTreeMaker();
+
+                    CompilationUnitTree cut = p.getCompilationUnit();
+                    if (cut.getPackageName() != null && !"".equals(newPackage)) { // NOI18N
+                        p.rewrite(cut.getPackageName(), treeMaker.Identifier(newPackage));
+
+                    } else {
+                        // in order to handle default package, we have to rewrite whole
+                        // compilation unit:
+                        CompilationUnitTree newCut = treeMaker.CompilationUnit(
+                                "".equals(newPackage) ? null : treeMaker.Identifier(newPackage), // NOI18N
+                                cut.getImports(),
+                                cut.getTypeDecls(),
+                                cut.getSourceFile()
+                        );
+                        p.rewrite(cut, newCut);
+                    }
+                }
+            });
+            runModificationTask.commit();
+        } catch (IOException ex) {
+            Exceptions.printStackTrace(ex);
+        }
+
+    }
+
+    private void handeJavaCode(JavaSource js, final Project pr, final String clipboardContent) throws IOException {
         js.runUserActionTask(new CancellableTask<CompilationController>() {
 
             @Override
             public void cancel() {
-                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
 
             @Override
@@ -117,28 +180,72 @@ public final class PasteAsFile implements ActionListener {
                     int lastIndexOf = toString.lastIndexOf(".");
 
                     //support packages and default package
-                    String packageName = (lastIndexOf > 0) ? toString.substring(0, lastIndexOf) : "";
+                    String packageNameFromClipboard = (lastIndexOf > 0) ? toString.substring(0, lastIndexOf) : "";
                     String className = next.getSimpleName().toString();
-
                     final String fileNameWithExt = String.format("%s.java", className);
+
                     try {
-                        //TODO create in source root to prevent compile errors in new file
-                        //TODO or transform the package in the code
-                        FileObject folder;
-                        if (null != packageName && !packageName.isEmpty()) {
-                            //is in different package, so create the folders to match the packagename
-                            folder = FileUtil.createFolder(context.getPrimaryFile(), packageName.replace('.', '/'));
+                        final FileObject selectedPackage = context.getPrimaryFile();
+
+                        String newPackageName;
+                        String packageFromSelectedFolder = getPackageNameFromFolder(pr, selectedPackage);
+                        FileObject srcRootForFolder = getSrcRootForFolder(pr, selectedPackage);
+                        final boolean isSourceRootSelected = "".equals(packageFromSelectedFolder);
+                        if (isSourceRootSelected) {
+                            //selected source root, so use package from clipboard content
+                            newPackageName = packageNameFromClipboard;
+
                         } else {
+                            //non-source root selected, use package from selected folder
+                            newPackageName = packageFromSelectedFolder;
+                        }
+
+                        final boolean isDefaultPackage = null == newPackageName || newPackageName.isEmpty();
+                        FileObject folder;
+                        if (isDefaultPackage) {
                             //default package, so create in current folder
                             folder = context.getPrimaryFile();
+                        } else {
+                            //is in different package, so create the folders to match the packagename
+                            folder = FileUtil.createFolder(srcRootForFolder, newPackageName.replace('.', '/'));
                         }
+
+                        final File fileToCreate = new File(FileUtil.toFile(folder), fileNameWithExt);
+                        if (fileToCreate.exists()) {
+                            JOptionPane.showMessageDialog(null, String.format("Cannot create a file from clipboard content.\nFile %s already exists.", fileToCreate.getAbsolutePath()), "Paste to new file", JOptionPane.WARNING_MESSAGE);
+                            return;
+                        }
+
                         FileObject file = FileUtil.createData(folder, fileNameWithExt);
                         writeToFile(file, clipboardContent);
+
+                        fixPackagename(file, newPackageName);
                         openFileInEditor(file);
                     } catch (IOException iOException) {
                         JOptionPane.showMessageDialog(null, String.format("Cannot create %s\n%s", fileNameWithExt, iOException.getMessage()));
                     }
                 }
+            }
+
+            private String getPackageNameFromFolder(Project pr, final FileObject selectedPackage) {
+                FileObject srcRootForFolder = getSrcRootForFolder(pr, selectedPackage);
+                if (null != srcRootForFolder) {
+                    String relativePath = FileUtil.getRelativePath(srcRootForFolder, selectedPackage);
+                    return relativePath.replace('/', '.');
+                } else {
+                    return "";
+                }
+            }
+
+            private FileObject getSrcRootForFolder(Project pr, final FileObject selectedPackage) {
+                for (String type : new String[]{JavaProjectConstants.SOURCES_TYPE_JAVA, JavaProjectConstants.SOURCES_TYPE_RESOURCES}) {
+                    for (SourceGroup sg : ProjectUtils.getSources(pr).getSourceGroups(type)) {
+                        if (selectedPackage == sg.getRootFolder() || (FileUtil.isParentOf(sg.getRootFolder(), selectedPackage) /*&& sg.contains(file)*/)) {
+                            return sg.getRootFolder();
+                        }
+                    }
+                }
+                return null;
             }
 
         }, true);
