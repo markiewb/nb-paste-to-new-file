@@ -47,7 +47,7 @@ import org.openide.util.datatransfer.ExClipboard;
     @ActionReference(path = "Menu/Edit", position = 1325),
     @ActionReference(path = "Shortcuts", name = "DOS-V")
 })
-@Messages("CTL_PasteAsFile=Paste as new file")
+@Messages("CTL_PasteAsFile=Paste to new file")
 public final class PasteAsFile implements ActionListener {
 
     private final DataFolder context;
@@ -82,18 +82,24 @@ public final class PasteAsFile implements ActionListener {
                             Name qualifiedName = next.getQualifiedName();
                             String toString = qualifiedName.toString();
                             int lastIndexOf = toString.lastIndexOf(".");
-                            if (lastIndexOf < 0) {
-                                return;
-                            }
-                            //FIXME support default package
-                            String packageName = toString.substring(0, lastIndexOf);
+
+                            //support packages and default package
+                            String packageName = (lastIndexOf > 0) ? toString.substring(0, lastIndexOf) : "";
                             String className = next.getSimpleName().toString();
 
                             final String fileNameWithExt = String.format("%s.java", className);
                             try {
                                 //TODO create in source root to prevent compile errors in new file
-                                FileObject packageFolder = FileUtil.createFolder(context.getPrimaryFile(), packageName.replace('.', '/'));
-                                FileObject file = FileUtil.createData(packageFolder, fileNameWithExt);
+                                //TODO or transform the package in the code
+                                FileObject folder;
+                                if (null != packageName && !packageName.isEmpty()) {
+                                    //is in different package, so create the folders to match the packagename
+                                    folder = FileUtil.createFolder(context.getPrimaryFile(), packageName.replace('.', '/'));
+                                } else {
+                                    //default package, so create in current folder
+                                    folder = context.getPrimaryFile();
+                                }
+                                FileObject file = FileUtil.createData(folder, fileNameWithExt);
                                 writeToFile(file, clipboardContent);
                                 openFileInEditor(file);
                             } catch (IOException iOException) {
