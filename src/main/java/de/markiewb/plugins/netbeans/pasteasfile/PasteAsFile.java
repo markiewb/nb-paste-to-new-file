@@ -1,6 +1,10 @@
 package de.markiewb.plugins.netbeans.pasteasfile;
 
 import com.sun.source.tree.CompilationUnitTree;
+import static de.markiewb.plugins.netbeans.pasteasfile.Util.openFileInEditor;
+import static de.markiewb.plugins.netbeans.pasteasfile.Util.writeToFile;
+import de.markiewb.plugins.netbeans.pasteasfile.java.JavaHandler;
+import de.markiewb.plugins.netbeans.pasteasfile.plain.PlainHandler;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -74,22 +78,25 @@ public final class PasteAsFile implements ActionListener {
         this.context = context;
     }
 
+    public PasteAsFile() {
+        this.context = null;
+    }
+
     @Override
     public void actionPerformed(ActionEvent ev) {
         try {
             final String clipboardContent = getClipboard();
-            //TODO java source: action is only action at src or test sourceroot to prevent compileerrors
-            JavaSource js = getJavaSourceForString(clipboardContent);
-            final boolean isJavaCodeInClipboard = js != null;
-            Project pr = FileOwnerQuery.getOwner(context.getPrimaryFile());
 
-            if (isJavaCodeInClipboard && pr != null) {
+            final JavaHandler javaHandler = new JavaHandler(context.getPrimaryFile());
+            final PlainHandler plainHandler = new PlainHandler(context.getPrimaryFile());
+
+            if (javaHandler.supports(clipboardContent)) {
                 //pasting into the project view
-                handeJavaCode(js, pr, clipboardContent);
+                javaHandler.handle(clipboardContent);
             } else {
                 //a) pasting non java code everywhere
                 //b) pasting java code in favorites view
-                handleArbitraryText(clipboardContent);
+                plainHandler.handle(clipboardContent);
 
             }
         } catch (IOException ex) {
@@ -108,170 +115,4 @@ public final class PasteAsFile implements ActionListener {
         return null;
     }
 
-    private JavaSource getJavaSourceForString(final String clipboardContent) throws IllegalArgumentException, IOException {
-        //http://blogs.kiyut.com/tonny/2007/09/01/netbeans-platform-and-memory-file-system/#.VQgBHeHHk5w
-        FileSystem fs = FileUtil.createMemoryFileSystem();
-        FileObject fob = fs.getRoot().createData("dummy", "java");
-        try (PrintWriter to = new PrintWriter(fob.getOutputStream())) {
-            to.print(clipboardContent);
-        }
-        JavaSource js = JavaSource.forFileObject(fob);
-        return js;
-    }
-
-    /**
-     * Taken from http://hg.netbeans.org/main/rev/045508faade4
-     *
-     * @param file
-     */
-    private void fixPackagename(FileObject file, final String newPackage) {
-        try {
-            JavaSource js = JavaSource.forFileObject(file);
-            ModificationResult runModificationTask = js.runModificationTask(new CancellableTask<WorkingCopy>() {
-
-                @Override
-                public void cancel() {
-                }
-
-                @Override
-                public void run(WorkingCopy p) throws Exception {
-                    p.toPhase(JavaSource.Phase.RESOLVED);
-                    TreeMaker treeMaker = p.getTreeMaker();
-
-                    CompilationUnitTree cut = p.getCompilationUnit();
-                    if (cut.getPackageName() != null && !"".equals(newPackage)) { // NOI18N
-                        p.rewrite(cut.getPackageName(), treeMaker.Identifier(newPackage));
-
-                    } else {
-                        // in order to handle default package, we have to rewrite whole
-                        // compilation unit:
-                        CompilationUnitTree newCut = treeMaker.CompilationUnit(
-                                "".equals(newPackage) ? null : treeMaker.Identifier(newPackage), // NOI18N
-                                cut.getImports(),
-                                cut.getTypeDecls(),
-                                cut.getSourceFile()
-                        );
-                        p.rewrite(cut, newCut);
-                    }
-                }
-            });
-            runModificationTask.commit();
-        } catch (IOException ex) {
-            Exceptions.printStackTrace(ex);
-        }
-
-    }
-
-    private void handeJavaCode(JavaSource js, final Project pr, final String clipboardContent) throws IOException {
-        js.runUserActionTask(new CancellableTask<CompilationController>() {
-
-            @Override
-            public void cancel() {
-            }
-
-            @Override
-            public void run(CompilationController p) throws Exception {
-                p.toPhase(JavaSource.Phase.ELEMENTS_RESOLVED);
-                List<? extends TypeElement> topLevelElements = p.getTopLevelElements();
-                if (!topLevelElements.isEmpty()) {
-                    TypeElement next = topLevelElements.iterator().next();
-                    Name qualifiedName = next.getQualifiedName();
-                    String toString = qualifiedName.toString();
-                    int lastIndexOf = toString.lastIndexOf(".");
-
-                    //support packages and default package
-                    String packageNameFromClipboard = (lastIndexOf > 0) ? toString.substring(0, lastIndexOf) : "";
-                    String className = next.getSimpleName().toString();
-                    final String fileNameWithExt = String.format("%s.java", className);
-
-                    try {
-                        final FileObject selectedPackage = context.getPrimaryFile();
-
-                        String newPackageName;
-                        String packageFromSelectedFolder = getPackageNameFromFolder(pr, selectedPackage);
-                        FileObject srcRootForFolder = getSrcRootForFolder(pr, selectedPackage);
-                        final boolean isSourceRootSelected = "".equals(packageFromSelectedFolder);
-                        if (isSourceRootSelected) {
-                            //selected source root, so use package from clipboard content
-                            newPackageName = packageNameFromClipboard;
-
-                        } else {
-                            //non-source root selected, use package from selected folder
-                            newPackageName = packageFromSelectedFolder;
-                        }
-
-                        final boolean isDefaultPackage = null == newPackageName || newPackageName.isEmpty();
-                        FileObject folder;
-                        if (isDefaultPackage) {
-                            //default package, so create in current folder
-                            folder = context.getPrimaryFile();
-                        } else {
-                            //is in different package, so create the folders to match the packagename
-                            folder = FileUtil.createFolder(srcRootForFolder, newPackageName.replace('.', '/'));
-                        }
-
-                        final File fileToCreate = new File(FileUtil.toFile(folder), fileNameWithExt);
-                        if (fileToCreate.exists()) {
-                            JOptionPane.showMessageDialog(null, String.format("Cannot create a file from clipboard content.\nFile %s already exists.", fileToCreate.getAbsolutePath()), "Paste to new file", JOptionPane.WARNING_MESSAGE);
-                            return;
-                        }
-
-                        FileObject file = FileUtil.createData(folder, fileNameWithExt);
-                        writeToFile(file, clipboardContent);
-
-                        fixPackagename(file, newPackageName);
-                        openFileInEditor(file);
-                    } catch (IOException iOException) {
-                        JOptionPane.showMessageDialog(null, String.format("Cannot create %s\n%s", fileNameWithExt, iOException.getMessage()));
-                    }
-                }
-            }
-
-            private String getPackageNameFromFolder(Project pr, final FileObject selectedPackage) {
-                FileObject srcRootForFolder = getSrcRootForFolder(pr, selectedPackage);
-                if (null != srcRootForFolder) {
-                    String relativePath = FileUtil.getRelativePath(srcRootForFolder, selectedPackage);
-                    return relativePath.replace('/', '.');
-                } else {
-                    return "";
-                }
-            }
-
-            private FileObject getSrcRootForFolder(Project pr, final FileObject selectedPackage) {
-                for (String type : new String[]{JavaProjectConstants.SOURCES_TYPE_JAVA, JavaProjectConstants.SOURCES_TYPE_RESOURCES}) {
-                    for (SourceGroup sg : ProjectUtils.getSources(pr).getSourceGroups(type)) {
-                        if (selectedPackage == sg.getRootFolder() || (FileUtil.isParentOf(sg.getRootFolder(), selectedPackage) /*&& sg.contains(file)*/)) {
-                            return sg.getRootFolder();
-                        }
-                    }
-                }
-                return null;
-            }
-
-        }, true);
-    }
-
-    private void handleArbitraryText(final String clipboardContent) throws IOException {
-        //fallback to create arbitrary file in current folder
-        String fileName = JOptionPane.showInputDialog("Name of the new file:", "FromClipboard.txt");
-        if (null != fileName) {
-            FileObject file = FileUtil.createData(context.getPrimaryFile(), fileName);
-            writeToFile(file, clipboardContent);
-            //open newly created file in editor
-            openFileInEditor(file);
-        }
-    }
-
-    private void openFileInEditor(FileObject file) throws DataObjectNotFoundException {
-        //open newly created file in editor
-        DataObject.find(file).getLookup().lookup(OpenCookie.class).open();
-    }
-
-    private void writeToFile(FileObject file, String clipboardContent) {
-        try (PrintWriter to = new PrintWriter(file.getOutputStream())) {
-            to.print(clipboardContent);
-        } catch (IOException ex) {
-            Exceptions.printStackTrace(ex);
-        }
-    }
 }
