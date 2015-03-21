@@ -12,3 +12,5 @@
 /*.iml
 /src/main/resources/rebel.xml
 /target - Copy/
+/nb-pasteasfile-core/target/
+/nb-pasteasfile-java/target/
