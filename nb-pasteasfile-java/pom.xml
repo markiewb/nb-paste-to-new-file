@@ -5,7 +5,7 @@
     <parent>
         <groupId>de.markiewb.netbeans.plugins</groupId>
         <artifactId>paste.to.new.file.modules</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
 
     <groupId>de.markiewb.netbeans.plugins</groupId>
@@ -13,34 +13,6 @@
     <packaging>nbm</packaging>
 
     <name>Paste to new file - Java</name>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
-        <netbeans.run.params.ide />
-        <netbeans.run.params>-J-javaagent:"${current.jrebel.agent.path}" -J-Drebel.log=true ${netbeans.run.params.ide}</netbeans.run.params>
-        <netbeans.version>RELEASE74</netbeans.version>
-    </properties>
-    <organization>
-        <name>Benno Markiewicz (benno.markiewicz@googlemail.com)</name>
-    </organization>
-    <url>https://github.com/markiewb/nb-paste-to-new-file</url>
-
-    <repositories>
-        <!--
-        Repository hosting NetBeans modules, especially APIs.
-        Versions are based on IDE releases, e.g.: RELEASE691
-        To create your own repository, use: nbm:populate-repository
-        -->
-        <repository>
-            <id>netbeans</id>
-            <name>NetBeans</name>
-            <url>http://bits.netbeans.org/maven2/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
 
     <dependencies>
         <dependency>
@@ -104,10 +76,15 @@
             <artifactId>org-netbeans-modules-java-project</artifactId>
             <version>${netbeans.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>paste.to.new.file.core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
-        <finalName>de-markiewb-netbeans-plugins-pastetonewfile-${project.version}</finalName>
+        <finalName>de-markiewb-netbeans-plugins-pastetonewfile-java-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -118,47 +95,16 @@
                     <!-- keep this id, else the update from existing versions will fail
                          and will cause classpath issues in the log file
                     -->
-                    <codeNameBase>de.markiewb.netbeans.plugins.pastetonewfile</codeNameBase>
+                    <codeNameBase>de.markiewb.netbeans.plugins.pastetonewfile.java</codeNameBase>
                     <keystore>private/keystore</keystore>
                     <keystorealias>myself</keystorealias>
                     <licenseFile>LICENSE</licenseFile>
                     <licenseName>Apache 2.0</licenseName>
                 </configuration>
             </plugin>
-
-            <plugin>
-                <!-- NetBeans 6.9+ requires JDK 6, starting NetBeans 7.4 source 1.7 will be required   -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.5.1</version>
-                <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
-                    <compilerArguments>
-                        <endorseddirs>${endorsed.dir}</endorseddirs>
-                    </compilerArguments>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.16</version>
-                <configuration>
-                    <argLine>-Djava.endorsed.dirs=${endorsed.dir}</argLine>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.4</version>
-                <configuration>
-                    <!-- to have the jar plugin pickup the nbm generated manifest -->
-                    <useDefaultManifestFile>true</useDefaultManifestFile>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
-    <description>&lt;h1&gt;Pastes textual clipbord content into a new file.&lt;/h1&gt;
+    <description>&lt;h1&gt;Pastes textual clipboard content into a new file.&lt;/h1&gt;
 
 Select a folder-node and choose "Edit->Paste to new file".
 

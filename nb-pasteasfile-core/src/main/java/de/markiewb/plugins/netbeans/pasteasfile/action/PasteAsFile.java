@@ -13,20 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.markiewb.plugins.netbeans.pasteasfile;
+package de.markiewb.plugins.netbeans.pasteasfile.action;
 
-import de.markiewb.plugins.netbeans.pasteasfile.java.JavaHandler;
-import de.markiewb.plugins.netbeans.pasteasfile.plain.PlainHandler;
+import de.markiewb.plugins.netbeans.pasteasfile.handler.IPasteHandler;
+import de.markiewb.plugins.netbeans.pasteasfile.handler.plain.PlainHandler;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.Collection;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
 import org.openide.awt.ActionReferences;
 import org.openide.awt.ActionRegistration;
+import org.openide.filesystems.FileObject;
 import org.openide.loaders.DataFolder;
 import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
@@ -67,30 +69,19 @@ public final class PasteAsFile implements ActionListener {
         this.context = context;
     }
 
-    public PasteAsFile() {
-        this.context = null;
-    }
-
     @Override
     public void actionPerformed(ActionEvent ev) {
-        try {
-            final String clipboardContent = getClipboard();
-
-            final JavaHandler javaHandler = new JavaHandler(context.getPrimaryFile());
-            final PlainHandler plainHandler = new PlainHandler(context.getPrimaryFile());
-
-            if (javaHandler.supports(clipboardContent)) {
-                //pasting into the project view
-                javaHandler.handle(clipboardContent);
-            } else {
-                //a) pasting non java code everywhere
-                //b) pasting java code in favorites view
-                plainHandler.handle(clipboardContent);
-
+        final String clipboardContent = getClipboard();
+        final FileObject selectedDir = context.getPrimaryFile();
+        Collection<? extends IPasteHandler> handlers = Lookup.getDefault().lookupAll(IPasteHandler.class);
+        for (IPasteHandler handler : handlers) {
+            if (handler.supports(clipboardContent, selectedDir)){
+                handler.handle(clipboardContent, selectedDir);
+                break;
             }
-        } catch (IOException ex) {
-            Exceptions.printStackTrace(ex);
         }
+        final PlainHandler plainHandler = new PlainHandler();
+        plainHandler.handle(clipboardContent, selectedDir);
     }
 
     public String getClipboard() {

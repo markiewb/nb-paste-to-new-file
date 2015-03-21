@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.markiewb.plugins.netbeans.pasteasfile.java;
+package de.markiewb.plugins.netbeans.pasteasfile.handler.java;
 
 import com.sun.source.tree.CompilationUnitTree;
-import static de.markiewb.plugins.netbeans.pasteasfile.Util.openFileInEditor;
-import static de.markiewb.plugins.netbeans.pasteasfile.Util.writeToFile;
+import de.markiewb.plugins.netbeans.pasteasfile.handler.IPasteHandler;
+import static de.markiewb.plugins.netbeans.pasteasfile.handler.Util.openFileInEditor;
+import static de.markiewb.plugins.netbeans.pasteasfile.handler.Util.writeToFile;
+import java.awt.HeadlessException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -40,19 +42,17 @@ import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileUtil;
 import org.openide.util.Exceptions;
+import org.openide.util.lookup.ServiceProvider;
 
 /**
  *
  * @author markiewb
  */
-public class JavaHandler {
-    private final FileObject selectedPackage;
+@ServiceProvider(service = IPasteHandler.class)
+public class JavaHandler implements IPasteHandler{
 
-    public JavaHandler(FileObject selectedPackage) {
-        this.selectedPackage = selectedPackage;
-    }
-
-    public boolean supports(String clipboardContent) {
+    @Override
+    public boolean supports(String clipboardContent, org.openide.filesystems.FileObject selectedPackage) {
         try {
             JavaSource js = getJavaSourceForString(clipboardContent);
             if (null==js){
@@ -168,59 +168,64 @@ public class JavaHandler {
         return null;
     }
 
-    public void handle(final String clipboardContent) throws IOException {
-        JavaSource js = getJavaSourceForString(clipboardContent);
-        Project pr = FileOwnerQuery.getOwner(selectedPackage);
-        
-        final GetFQNFromTopmostElement task = new GetFQNFromTopmostElement();
-        js.runUserActionTask(task, true);
-        String packageNameFromClipboard = task.packageNameFromClipboard;
-        if (null != packageNameFromClipboard) {
+    @Override
+    public void handle(final String clipboardContent, FileObject selectedPackage){
+        try {
+            JavaSource js = getJavaSourceForString(clipboardContent);
+            Project pr = FileOwnerQuery.getOwner(selectedPackage);
+            
+            final GetFQNFromTopmostElement task = new GetFQNFromTopmostElement();
+            js.runUserActionTask(task, true);
+            String packageNameFromClipboard = task.packageNameFromClipboard;
+            if (null != packageNameFromClipboard) {
 
-            //support packages and default package
-            String className = task.className;
-            final String fileNameWithExt = String.format("%s.java", className);
-
-            try {
-
-                String newPackageName;
-                String packageFromSelectedFolder = getPackageNameFromFolder(pr, selectedPackage);
-                FileObject srcRootForFolder = getSrcRootForFolder(pr, selectedPackage);
-                final boolean isSourceRootSelected = "".equals(packageFromSelectedFolder);
-                if (isSourceRootSelected) {
-                    //selected source root, so use package from clipboard content
-                    newPackageName = packageNameFromClipboard;
-
-                } else {
-                    //non-source root selected, use package from selected folder
-                    newPackageName = packageFromSelectedFolder;
+                //support packages and default package
+                String className = task.className;
+                final String fileNameWithExt = String.format("%s.java", className);
+                
+                try {
+                    
+                    String newPackageName;
+                    String packageFromSelectedFolder = getPackageNameFromFolder(pr, selectedPackage);
+                    FileObject srcRootForFolder = getSrcRootForFolder(pr, selectedPackage);
+                    final boolean isSourceRootSelected = "".equals(packageFromSelectedFolder);
+                    if (isSourceRootSelected) {
+                        //selected source root, so use package from clipboard content
+                        newPackageName = packageNameFromClipboard;
+                        
+                    } else {
+                        //non-source root selected, use package from selected folder
+                        newPackageName = packageFromSelectedFolder;
+                    }
+                    
+                    final boolean isDefaultPackage = null == newPackageName || newPackageName.isEmpty();
+                    FileObject folder;
+                    if (isDefaultPackage) {
+                        //default package, so create in current folder
+                        folder = selectedPackage;
+                    } else {
+                        //is in different package, so create the folders to match the packagename
+                        folder = FileUtil.createFolder(srcRootForFolder, newPackageName.replace('.', '/'));
+                    }
+                    
+                    final File fileToCreate = new File(FileUtil.toFile(folder), fileNameWithExt);
+                    if (fileToCreate.exists()) {
+                        JOptionPane.showMessageDialog(null, String.format("Cannot create a file from clipboard content.\nFile %s already exists.", fileToCreate.getAbsolutePath()), "Paste to new file", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    
+                    FileObject file = FileUtil.createData(folder, fileNameWithExt);
+                    writeToFile(file, clipboardContent);
+                    
+                    fixPackagename(file, newPackageName);
+                    openFileInEditor(file);
+                } catch (IOException iOException) {
+                    JOptionPane.showMessageDialog(null, String.format("Cannot create %s\n%s", fileNameWithExt, iOException.getMessage()));
                 }
-
-                final boolean isDefaultPackage = null == newPackageName || newPackageName.isEmpty();
-                FileObject folder;
-                if (isDefaultPackage) {
-                    //default package, so create in current folder
-                    folder = selectedPackage;
-                } else {
-                    //is in different package, so create the folders to match the packagename
-                    folder = FileUtil.createFolder(srcRootForFolder, newPackageName.replace('.', '/'));
-                }
-
-                final File fileToCreate = new File(FileUtil.toFile(folder), fileNameWithExt);
-                if (fileToCreate.exists()) {
-                    JOptionPane.showMessageDialog(null, String.format("Cannot create a file from clipboard content.\nFile %s already exists.", fileToCreate.getAbsolutePath()), "Paste to new file", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                FileObject file = FileUtil.createData(folder, fileNameWithExt);
-                writeToFile(file, clipboardContent);
-
-                fixPackagename(file, newPackageName);
-                openFileInEditor(file);
-            } catch (IOException iOException) {
-                JOptionPane.showMessageDialog(null, String.format("Cannot create %s\n%s", fileNameWithExt, iOException.getMessage()));
             }
-        };
+        } catch (IllegalArgumentException | IOException | HeadlessException exception) {
+            throw new RuntimeException(exception);
+        }
     }
 
     private String getPackageNameFromFolder(Project pr, final FileObject selectedPackage) {
