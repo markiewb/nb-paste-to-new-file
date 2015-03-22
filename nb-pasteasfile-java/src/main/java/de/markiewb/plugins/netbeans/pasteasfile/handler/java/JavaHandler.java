@@ -1,5 +1,5 @@
-/*
- * Copyright 2015 Benno Markiewicz (benno.markiewicz@googlemail.com).
+/* 
+ * Copyright 2015 markiewb.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

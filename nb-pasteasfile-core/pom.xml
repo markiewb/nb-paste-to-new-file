@@ -66,7 +66,7 @@
                     <codeNameBase>de.markiewb.netbeans.plugins.pastetonewfile.core</codeNameBase>
                     <keystore>private/keystore</keystore>
                     <keystorealias>myself</keystorealias>
-                    <licenseFile>LICENSE</licenseFile>
+                    <licenseFile>LICENSE-2.0.txt</licenseFile>
                     <licenseName>Apache 2.0</licenseName>
                     <publicPackages>
                         <publicPackage>de.markiewb.plugins.netbeans.pasteasfile.handler</publicPackage>
@@ -107,4 +107,7 @@
 &lt;a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=K4CMP92RZELE2"&gt;&lt;img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="btn_donate_SM.gif"&gt;&lt;/a&gt;
 
 &lt;/p&gt;</description>
+    <properties>
+        <netbeans.hint.license>apache20</netbeans.hint.license>
+    </properties>
 </project>

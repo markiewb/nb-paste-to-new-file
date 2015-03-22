@@ -67,7 +67,7 @@
                     <codeNameBase>de.markiewb.netbeans.plugins.pastetonewfile.java</codeNameBase>
                     <keystore>private/keystore</keystore>
                     <keystorealias>myself</keystorealias>
-                    <licenseFile>LICENSE</licenseFile>
+                    <licenseFile>LICENSE-2.0.txt</licenseFile>
                     <licenseName>Apache 2.0</licenseName>
                 </configuration>
             </plugin>
