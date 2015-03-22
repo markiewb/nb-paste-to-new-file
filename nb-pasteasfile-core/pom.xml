@@ -1,0 +1,114 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>de.markiewb.netbeans.plugins</groupId>
+        <artifactId>paste.to.new.file.modules</artifactId>
+        <version>1.1.0-SNAPSHOT</version>
+    </parent>
+    <groupId>de.markiewb.netbeans.plugins</groupId>
+    <artifactId>paste.to.new.file.core</artifactId>
+    <packaging>nbm</packaging>
+
+    <name>Paste to new file</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-netbeans-api-annotations-common</artifactId>
+            <version>${netbeans.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-openide-util</artifactId>
+            <version>${netbeans.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-openide-loaders</artifactId>
+            <version>${netbeans.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-openide-util-lookup</artifactId>
+            <version>${netbeans.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-openide-awt</artifactId>
+            <version>${netbeans.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-openide-nodes</artifactId>
+            <version>${netbeans.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-openide-filesystems</artifactId>
+            <version>${netbeans.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>de-markiewb-netbeans-plugins-pastetonewfile-core-${project.version}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>nbm-maven-plugin</artifactId>
+                <version>3.11.1</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <!-- keep this id, else the update from existing versions will fail
+                         and will cause classpath issues in the log file
+                    -->
+                    <codeNameBase>de.markiewb.netbeans.plugins.pastetonewfile.core</codeNameBase>
+                    <keystore>private/keystore</keystore>
+                    <keystorealias>myself</keystorealias>
+                    <licenseFile>LICENSE-2.0.txt</licenseFile>
+                    <licenseName>Apache 2.0</licenseName>
+                    <publicPackages>
+                        <publicPackage>de.markiewb.plugins.netbeans.pasteasfile.handler</publicPackage>
+                    </publicPackages>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <description>&lt;h1&gt;Pastes textual clipboard content into a new file.&lt;/h1&gt;
+
+&lt;b&gt;Usage:&lt;/b&gt; Select a folder-node and choose "Edit-&gt;Paste to new file".
+
+&lt;ul&gt;
+&lt;li&gt;Support of arbitrary text (user will be asked for filename)&lt;/li&gt;
+&lt;li&gt;Support of Java sources (packagename/folders will be adapted to prevent compile errors)&lt;/li&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Important note:&lt;/b&gt; Requires the installation of the "Paste to new file - Java" plugin.&lt;/li&gt;
+&lt;li&gt;pasting at source root (like src/main/java) will create the file in the package defined by the packagename in the clipboard (=folders will be created to match sourcecode's packagename)&lt;/li&gt;
+&lt;li&gt;pasting at non-source root (like src/main/java/com/foo) will create the file in the package defined by the selected folder (=sourcecode's packagename will be modified to match the folder structure)&lt;/li&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;Updates&lt;/h2&gt;
+&lt;h3&gt;1.1.0:&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Initial version&lt;/li&gt;
+&lt;li&gt;Support of Java sources in clipboard&lt;/li&gt;
+&lt;li&gt;Support of arbitrary text  in clipboard&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;
+
+&lt;p&gt;Legal disclaimer: Code is licensed under Apache 2.0. &lt;/p&gt;
+
+&lt;p&gt;
+        Provide defects, request for enhancements and feedback at &lt;a href=https://github.com/markiewb/nb-paste-to-new-file/issues"&gt;https://github.com/markiewb/nb-paste-to-new-file/issues&lt;/a&gt;
+&lt;/p&gt;
+&lt;p&gt;Compatible to NetBeans 7.4+, JDK7&lt;/p&gt;
+&lt;p&gt;
+&lt;a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=K4CMP92RZELE2"&gt;&lt;img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="btn_donate_SM.gif"&gt;&lt;/a&gt;
+
+&lt;/p&gt;</description>
+    <properties>
+        <netbeans.hint.license>apache20</netbeans.hint.license>
+    </properties>
+</project>

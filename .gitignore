@@ -11,3 +11,10 @@
 /.idea/
 /*.iml
 /src/main/resources/rebel.xml
+/target - Copy/
+/nb-pasteasfile-core/target/
+/nb-pasteasfile-java/target/
+/mavenproject1/application/target/
+/application/target/
+/nb-pasteasfile-java/private/
+/nb-pasteasfile-core/private/
