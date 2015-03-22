@@ -77,19 +77,20 @@
     </build>
     <description>&lt;h1&gt;Pastes textual clipboard content into a new file.&lt;/h1&gt;
 
-        Select a folder-node and choose "Edit->Paste to new file".
+&lt;b&gt;Usage:&lt;/b&gt; Select a folder-node and choose "Edit-&gt;Paste to new file".
 
 &lt;ul&gt;
 &lt;li&gt;Support of arbitrary text (user will be asked for filename)&lt;/li&gt;
 &lt;li&gt;Support of Java sources (packagename/folders will be adapted to prevent compile errors)&lt;/li&gt;
 &lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Important note:&lt;/b&gt; Requires the installation of the "Paste to new file - Java" plugin.&lt;/li&gt;
 &lt;li&gt;pasting at source root (like src/main/java) will create the file in the package defined by the packagename in the clipboard (=folders will be created to match sourcecode's packagename)&lt;/li&gt;
 &lt;li&gt;pasting at non-source root (like src/main/java/com/foo) will create the file in the package defined by the selected folder (=sourcecode's packagename will be modified to match the folder structure)&lt;/li&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/ul&gt;
 
 &lt;h2&gt;Updates&lt;/h2&gt;
-&lt;h3&gt;1.0.0:&lt;/h3&gt;
+&lt;h3&gt;1.1.0:&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Initial version&lt;/li&gt;
 &lt;li&gt;Support of Java sources in clipboard&lt;/li&gt;

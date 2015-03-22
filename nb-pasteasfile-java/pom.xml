@@ -73,12 +73,14 @@
             </plugin>
         </plugins>
     </build>
-    <description>&lt;h1&gt;Pastes textual clipboard content into a new file.&lt;/h1&gt;
+    <description>&lt;p&gt;&lt;b&gt;&lt;font color="red"&gt;Important note:&lt;/font&gt;&lt;/b&gt; This is an addon for the "Paste to new file - Core" plugin. It cannot be used standalone, it requires the installation of the "Paste to new file - Core" plugin and the NetBeans Java/Project modules.&lt;/p&gt;
 
-Select a folder-node and choose "Edit->Paste to new file".
+&lt;h1&gt;Pastes textual clipboard content into a new file.&lt;/h1&gt;
+
+&lt;b&gt;Usage:&lt;/b&gt; Select a folder-node (f.e. "Source Package" or a package) in the Projects windows and choose "Edit-&gt;Paste to new file".
 
 &lt;ul&gt;
-&lt;li&gt;Support of arbitrary text (user will be asked for filename)&lt;/li&gt;
+&lt;li&gt;Support of arbitrary text (user will be asked for filename) - provided by the "Paste to new file - Core" plugin&lt;/li&gt;
 &lt;li&gt;Support of Java sources (packagename/folders will be adapted to prevent compile errors)&lt;/li&gt;
 &lt;ul&gt;
 &lt;li&gt;pasting at source root (like src/main/java) will create the file in the package defined by the packagename in the clipboard (=folders will be created to match sourcecode's packagename)&lt;/li&gt;
@@ -87,7 +89,7 @@ Select a folder-node and choose "Edit->Paste to new file".
 &lt;/ul&gt;
 
 &lt;h2&gt;Updates&lt;/h2&gt;
-&lt;h3&gt;1.0.0:&lt;/h3&gt;
+&lt;h3&gt;1.1.0:&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Initial version&lt;/li&gt;
 &lt;li&gt;Support of Java sources in clipboard&lt;/li&gt;
@@ -98,7 +100,7 @@ Select a folder-node and choose "Edit->Paste to new file".
 &lt;p&gt;Legal disclaimer: Code is licensed under Apache 2.0. &lt;/p&gt;
 
 &lt;p&gt;
-Provide defects, request for enhancements and feedback at &lt;a href=https://github.com/markiewb/nb-paste-to-new-file/issues"&gt;https://github.com/markiewb/nb-paste-to-new-file/issues&lt;/a&gt;
+        Provide defects, request for enhancements and feedback at &lt;a href=https://github.com/markiewb/nb-paste-to-new-file/issues"&gt;https://github.com/markiewb/nb-paste-to-new-file/issues&lt;/a&gt;
 &lt;/p&gt;
 &lt;p&gt;Compatible to NetBeans 7.4+, JDK7&lt;/p&gt;
 &lt;p&gt;
