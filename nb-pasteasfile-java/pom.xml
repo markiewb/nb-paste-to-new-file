@@ -12,7 +12,7 @@
     <artifactId>paste.to.new.file.java</artifactId>
     <packaging>nbm</packaging>
 
-    <name>Paste to new file - Java</name>
+    <name>Paste to new file - Addon: Java</name>
 
     <dependencies>
         <dependency>

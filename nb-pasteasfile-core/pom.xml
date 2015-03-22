@@ -11,7 +11,7 @@
     <artifactId>paste.to.new.file.core</artifactId>
     <packaging>nbm</packaging>
 
-    <name>Paste to new file - Core</name>
+    <name>Paste to new file</name>
 
     <dependencies>
         <dependency>
