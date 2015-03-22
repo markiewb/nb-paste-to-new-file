@@ -30,7 +30,6 @@ import org.openide.awt.ActionReferences;
 import org.openide.awt.ActionRegistration;
 import org.openide.filesystems.FileObject;
 import org.openide.loaders.DataFolder;
-import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle.Messages;
 import org.openide.util.datatransfer.ExClipboard;
@@ -77,7 +76,7 @@ public final class PasteAsFile implements ActionListener {
         for (IPasteHandler handler : handlers) {
             if (handler.supports(clipboardContent, selectedDir)){
                 handler.handle(clipboardContent, selectedDir);
-                break;
+                return;
             }
         }
         final PlainHandler plainHandler = new PlainHandler();
