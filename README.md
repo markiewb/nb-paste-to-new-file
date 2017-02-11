@@ -1,3 +1,6 @@
+<hr>
+<h1 style="color: #FF0000">Looking for maintainers, who want to take over the development!</h1>
+<hr>
 # nb-paste-to-new-file
 NetBeans plugin which pastes textual clipboard content into a new file.
 
